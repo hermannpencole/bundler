@@ -1235,7 +1235,7 @@ end
         end << "bundler"
       end
 
-      let(:code) { strip_whitespace(<<-RUBY) }
+      let(:activation_warning_hack) { strip_whitespace(<<-RUBY) }
         require "rubygems"
 
         if Gem::Specification.instance_methods.map(&:to_sym).include?(:activate)
@@ -1250,7 +1250,14 @@ end
             bundler_spec_activate
           end
         end
+      RUBY
 
+      before do
+        create_file("activation_warning_hack.rb", activation_warning_hack)
+        ENV["RUBYOPT"] = "-r#{bundled_app("activation_warning_hack")} #{ENV["RUBYOPT"]}"
+      end
+
+      let(:code) { strip_whitespace(<<-RUBY) }
         require "bundler/setup"
         require "pp"
         loaded_specs = Gem.loaded_specs.dup
@@ -1267,16 +1274,14 @@ end
       it "activates no gems with -rbundler/setup" do
         install_gemfile! ""
         ruby!(code)
-        expect(err).to eq("")
-        expect(out).to eq("{}")
+        expect(last_command.stdout).to eq("{}")
       end
 
       it "activates no gems with bundle exec" do
         install_gemfile! ""
         create_file("script.rb", code)
         bundle! "exec ruby ./script.rb"
-        expect(err).to eq("")
-        expect(out).to eq("{}")
+        expect(last_command.stdout).to eq("{}")
       end
 
       it "activates no gems with bundle exec that is loaded" do
@@ -1287,8 +1292,7 @@ end
         create_file("script.rb", "#!/usr/bin/env ruby\n\n#{code}")
         FileUtils.chmod(0o777, bundled_app("script.rb"))
         bundle! "exec ./script.rb", :artifice => nil
-        expect(err).to eq("")
-        expect(out).to eq("{}")
+        expect(last_command.stdout).to eq("{}")
       end
 
       let(:default_gems) do
