@@ -246,6 +246,9 @@ learn more about their operation in [bundle install(1)][bundle-install].
 * `suppress_install_using_messages` (`BUNDLE_SUPPRESS_INSTALL_USING_MESSAGES`):
    Avoid printing `Using ...` messages during installation when the version of
    a gem has not changed.
+* `setup_makes_kernel_gem_public` (`BUNDLE_SETUP_MAKES_KERNEL_GEM_PUBLIC`):
+   Have `Bundler.setup` make the `Kernel#gem` method public, even though
+   RubyGems declares it as private.
 
 In general, you should set these settings per-application by using the applicable
 flag to the [bundle install(1)][bundle-install] or [bundle package(1)][bundle-package] command.
