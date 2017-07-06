@@ -77,6 +77,7 @@ module Bundler
         lock
         return
       end
+      return Bundler.ui.debug "Skipping installation since there are no missing specs" unless @definition.missing_specs?
 
       resolve_if_needed(options)
       ensure_specs_are_compatible!
