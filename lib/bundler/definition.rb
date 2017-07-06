@@ -102,7 +102,7 @@ module Bundler
       end
       @unlocking ||= @unlock[:ruby] ||= (!@locked_ruby_version ^ !@ruby_version)
 
-      add_current_platform unless Bundler.settings[:frozen]
+      add_current_platform unless frozen?
 
       converge_path_sources_to_gemspec_sources
       @path_changes = converge_paths
@@ -234,7 +234,10 @@ module Bundler
     def resolve
       @resolve ||= begin
         last_resolve = converge_locked_specs
-        if Bundler.settings[:frozen] || (!unlocking? && nothing_changed?)
+        if frozen?
+          Bundler.ui.debug "Frozen, using resolution from the lockfile"
+          last_resolve
+        elsif !unlocking? && nothing_changed?
           Bundler.ui.debug("Found no changes, using resolution from the lockfile")
           last_resolve
         else
@@ -294,6 +297,14 @@ module Bundler
       !sources.path_sources.empty? || !sources.git_sources.empty?
     end
 
+    def frozen?
+      if Bundler.feature_flag.deployment_means_frozen?
+        Bundler.settings[:deployment]
+      else
+        Bundler.settings[:frozen]
+      end
+    end
+
     def spec_git_paths
       sources.git_sources.map {|s| s.path.to_s }
     end
@@ -319,10 +330,10 @@ module Bundler
         end
       end
 
-      preserve_unknown_sections ||= !updating_major && (Bundler.settings[:frozen] || !unlocking?)
+      preserve_unknown_sections ||= !updating_major && (frozen? || !unlocking?)
       return if lockfiles_equal?(@lockfile_contents, contents, preserve_unknown_sections)
 
-      if Bundler.settings[:frozen]
+      if frozen?
         Bundler.ui.error "Cannot write a changed lockfile while frozen."
         return
       end
@@ -660,7 +671,7 @@ module Bundler
     end
 
     def converge_dependencies
-      frozen = Bundler.settings[:frozen]
+      frozen = frozen?
       (@dependencies + @locked_deps.values).each do |dep|
         locked_source = @locked_deps[dep.name]
         # This is to make sure that if bundler is installing in deployment mode and
